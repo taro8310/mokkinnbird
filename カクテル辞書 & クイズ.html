@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>カクテル辞書 & クイズ</title>
+<style>
+:root{
+  --bg:#fbf7f2; --card:#ffffff; --ink:#2b2320; --sub:#7a6d63; --line:#e6ddd2;
+  --accent:#a8452f; --accent2:#c9793f; --chip:#f1e6d8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1c1714; --card:#26201c; --ink:#f1e8de; --sub:#b6a998; --line:#3a322b;
+    --accent:#e08a5c; --accent2:#e0b25c; --chip:#332a23;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1c1714; --card:#26201c; --ink:#f1e8de; --sub:#b6a998; --line:#3a322b;
+  --accent:#e08a5c; --accent2:#e0b25c; --chip:#332a23;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Yu Gothic",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+header{padding:20px 16px 12px;text-align:center}
+h1{font-size:1.35rem;margin:0 0 4px;letter-spacing:.02em}
+header p{margin:0;color:var(--sub);font-size:.85rem}
+nav{display:flex;gap:8px;justify-content:center;padding:8px 16px 0;flex-wrap:wrap;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+nav button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:999px;font-size:.9rem;cursor:pointer}
+nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+main{max-width:760px;margin:0 auto;padding:16px}
+.view{display:none}
+.view.active{display:block}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.filters button{border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:5px 11px;border-radius:8px;font-size:.8rem;cursor:pointer}
+.filters button.active{background:var(--accent2);color:#231a12;border-color:var(--accent2)}
+.search{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:.9rem;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.card .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card h3{margin:0;font-size:1rem}
+.card .price{color:var(--accent);font-weight:600;font-size:.9rem;white-space:nowrap}
+.tag{display:inline-block;font-size:.7rem;color:var(--sub);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin:4px 6px 0 0}
+.ing{margin-top:6px;font-size:.85rem;color:var(--sub)}
+.fam-group{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.fam-group h4{margin:0 0 6px;font-size:.9rem;color:var(--accent)}
+.fam-group .members{display:flex;flex-wrap:wrap;gap:6px}
+.fam-group .m{background:var(--chip);border-radius:8px;padding:6px 9px;font-size:.85rem}
+.fam-group .m b{color:var(--ink)}
+.fam-group .m span{color:var(--sub);font-size:.75rem;display:block}
+.origin-card{background:var(--chip);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.origin-card h4{margin:0 0 6px;font-size:.95rem;color:var(--accent)}
+.origin-card p{margin:4px 0;font-size:.85rem;color:var(--ink);line-height:1.5}
+.origin-card p b{color:var(--accent2)}
+.qcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;text-align:center}
+.qcard .qtext{font-size:1.05rem;margin-bottom:16px;line-height:1.5}
+.choices{display:grid;gap:10px}
+.choices button{padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font-size:.95rem;cursor:pointer}
+.choices button.correct{background:#3f7d4a;color:#fff;border-color:#3f7d4a}
+.choices button.wrong{background:var(--accent);color:#fff;border-color:var(--accent)}
+.qmeta{display:flex;justify-content:space-between;color:var(--sub);font-size:.8rem;margin-bottom:10px}
+.next{margin-top:16px;padding:10px 20px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-size:.9rem;cursor:pointer;display:none}
+.empty{color:var(--sub);text-align:center;padding:30px 0}
+</style>
+</head>
+<body>
+<header>
+<h1>🍸 カクテル辞書 & クイズ</h1>
+<p>メニュー掲載カクテルをベース別・材料別に整理</p>
+</header>
+<nav>
+<button class="tabbtn active" data-v="dict">辞書</button>
+<button class="tabbtn" data-v="fam">材料が同じ仲間</button>
+<button class="tabbtn" data-v="quiz">クイズ</button>
+</nav>
+<main>
+
+<section id="dict" class="view active">
+  <input class="search" id="search" placeholder="カクテル名・材料で検索">
+  <div class="filters" id="baseFilters"></div>
+  <div id="dictList"></div>
+</section>
+
+<section id="fam" class="view">
+  <p style="color:var(--sub);font-size:.85rem;margin-top:0">ベースの酒（ラム・ジン等）を除いた材料が完全に一致するカクテルをグループ化しています。</p>
+  <div id="famList"></div>
+</section>
+
+<section id="quiz" class="view">
+  <div id="modeSelect">
+    <p style="color:var(--sub);font-size:.85rem;margin-top:0">出題形式を選んでください</p>
+    <div class="filters" id="modeButtons"></div>
+  </div>
+  <div class="qcard" id="qcard" style="display:none">
+    <div class="qmeta"><span id="qscore">0 / 0 正解</span><span id="qtype"></span></div>
+    <div class="qtext" id="qtext"></div>
+    <div class="choices" id="qchoices"></div>
+    <button class="next" id="qnext">次の問題 →</button>
+    <button class="next" id="qchangemode" style="display:inline-block;background:var(--chip);color:var(--ink);border:1px solid var(--line);margin-left:8px">モード変更</button>
+  </div>
+</section>
+
+</main>
+<script>
+const BASES=["ラム","テキーラ","ウォッカ","ウイスキー","ジン","ブランデー"];
+const STRIP=new Set(["ラム","ゴールドラム","151プルーフラム","テキーラ","ウォッカ","ジン","ライウィスキー","スコッチウィスキー","バーボン","ジャックダニエル","コニャック","アップルブランデー"]);
+// [name, base, type, ingredients[], price(0=不明)]
+const DATA=[
+["ダイキリ","ラム","Short",["ラム","ライムジュース","パウダーシュガー"],1100,"キューバの鉱山町「ダイキリ」の地名に由来する。"],
+["スカイダイビング","ラム","Short",["ラム","ブルーキュラソー","ライムジュース"],1100,"青いキュラソーで空を表現し、「空を飛ぶ」イメージから名付けられたとされる。"],
+["カサブランカ","ラム","Short",["ゴールドラム","オレンジキュラソー","マラスキーノ","レモンジュース"],1100,"スペイン語で「白い家」の意味。映画『カサブランカ』にちなむという説もある。"],
+["X・Y・Z","ラム","Short",["ラム","ホワイトキュラソー","レモンジュース"],1100,"アルファベットの最後の3文字から「これ以上はない、究極の一杯」という意味。"],
+["ミリオネーア","ラム","Short",["ラム","アプリコットブランデー","スロージン","レモンジュース"],1100,"英語で「百万長者」の意味。豪華で贅沢なイメージから。"],
+["キューバリブレ","ラム","Long",["ラム","コカ・コーラ","ライムジュース"],990,"スペイン語で「自由なキューバ」。キューバ独立戦争のスローガンに由来する。"],
+["ソルクバーノ","ラム","Long",["ラム","グレープフルーツジュース","トニックウォーター"],990,"スペイン語で「キューバの太陽」を意味する『Sol Cubano』から。"],
+["ボストンクーラー","ラム","Long",["ラム","レモンジュース","シュガーシロップ","ソーダ"],1100,"アメリカ・ボストンの地名にちなんだ清涼飲料(クーラー)という名前。"],
+["ジャックター","ラム","Long",["151プルーフラム","サザンカンフォート","ライムジュース"],0,"船乗りを指す俗語『Jack Tar』に由来する。"],
+["モヒート","ラム","Long",["ラム","ライム","ミント葉","シュガーシロップ","ソーダ"],0,"スペイン語で「魔法をかける・味付けする」を意味する『mojo』や『mojar(湿らす)』が語源という説がある。"],
+["ゾンビー","ラム","Long",["ラム","アプリコットブランデー","オレンジジュース","パインジュース","グレナデンシロップ"],0,"アルコール度数が高く「意識を失いゾンビのようになる」ことから名付けられたとされる。"],
+["ピニャコラーダ","ラム","Long",["ラム","ココナッツリキュール","パインジュース","ミルク"],0,"スペイン語で「濾したパイナップル」を意味する。"],
+["マルガリータ","テキーラ","Short",["テキーラ","ホワイトキュラソー","ライムジュース"],0,"考案者が亡くなった恋人(または客)の名前『マルガリータ』に捧げたという説が有名。"],
+["モッキンバード","テキーラ","Short",["テキーラ","ミントリキュール","ライムジュース"],1100,"英語で「マネシツグミ」という鳥の名前『mockingbird』に由来する。"],
+["ブロードウェイサースト","テキーラ","Short",["テキーラ","オレンジジュース","レモンジュース"],1100,"ニューヨークの繁華街『ブロードウェイの渇き』を癒すという意味合い。"],
+["メキシコーラ","テキーラ","Long",["テキーラ","コーラ","ライム"],990,"『メキシコ』と『コーラ』を組み合わせた造語。"],
+["パロマ","テキーラ","Long",["テキーラ","グレープフルーツジュース","トニックウォーター"],990,"スペイン語で「鳩」を意味する。"],
+["バイーアブリーズ","テキーラ","Long",["テキーラ","クランベリージュース","パインジュース"],990,"ブラジル・バイーア地方から吹く『そよ風』を意味する。"],
+["マダドール","テキーラ","Long",["テキーラ","パインジュース","レモンジュース"],1100,"スペイン語で「闘牛士」を意味する。"],
+["テキーラサンライズ","テキーラ","Long",["テキーラ","オレンジジュース","グレナデンシロップ"],1100,"「テキーラの日の出」の意味。グレナデンシロップが沈んで層を作る様子が朝日のように見えることから。"],
+["カクタスバンガー","テキーラ","Long",["テキーラ","オレンジジュース","ガリアーノ"],1100,"サボテン(テキーラの原料アガベ)と『強い一撃』を意味する『バンガー』を組み合わせた名前。"],
+["フローズンマルガリータ","テキーラ","Long",["テキーラ","ホワイトキュラソー","レモンジュース"],1100,"『マルガリータ』を凍らせた(フローズン)スタイルという意味。"],
+["バラライカ","ウォッカ","Short",["ウォッカ","ホワイトキュラソー","レモンジュース"],1100,"ロシアの三角形の弦楽器『バラライカ』にちなむ。"],
+["雪国","ウォッカ","Short",["ウォッカ","ホワイトキュラソー","ライムジュース"],1100,"日本生まれのカクテルで、川端康成の小説『雪国』に由来する。"],
+["コスモポリタン","ウォッカ","Short",["ウォッカ","ホワイトキュラソー","クランベリージュース","ライムジュース"],1100,"英語で「国際的な、洗練された都会人」を意味する。"],
+["タワリシチ","ウォッカ","Short",["ウォッカ","キュンメル","ライムジュース"],1100,"ロシア語で「同志」を意味する『товарищ』から。"],
+["ナッティエンジェル","ウォッカ","Short",["ウォッカ","フランジェリコ","ベイリーズ","カカオ"],0,"英語で「木の実(ナッツ)のような天使」という意味の名前。"],
+["モスコーミュール","ウォッカ","Long",["ウォッカ","ライム","ジンジャーエール"],1100,"『モスクワの頑固者(ラバ)』の意味。ウォッカの強さをラバの蹴りに例えたとされる。"],
+["ソルティドッグ","ウォッカ","Long",["ウォッカ","グレープフルーツジュース"],990,"塩(ソルト)をまぶしたグラスと、潮風にさらされた船乗りを指す俗語『Salty Dog』にちなむ。"],
+["ウォッカスプラッシュ","ウォッカ","Long",["ウォッカ","クランベリージュース","ソーダ"],990,"ウォッカを『はねかける』という意味の名前。"],
+["シーブリーズ","ウォッカ","Long",["ウォッカ","クランベリージュース","グレープフルーツジュース"],0,"英語で「海風」を意味する。"],
+["ブラッディメアリー","ウォッカ","Long",["ウォッカ","トマトジュース","レモンジュース"],1320,"「血まみれのメアリー」の意味で、イングランド女王メアリー1世の異名に由来するという説が有名。"],
+["ブラッディシーザー","ウォッカ","Long",["ウォッカ","クラマトジュース","レモンジュース"],1210,"カナダで考案され、ブラッディメアリーに対抗してローマ皇帝カエサル(シーザー)の名を借りたとされる。"],
+["アクアマリーナ","ウォッカ","Long",["ウォッカ","ミントリキュール","レモンジュース","スパークリングワイン"],1100,"「海の水」を意味し、宝石アクアマリンの名前も掛けている。"],
+["神風","ウォッカ","Long",["ウォッカ","ホワイトキュラソー","ライムジュース"],1210,"日本語の『神風』から。強い衝撃とスピード感のあるカクテルとして名付けられた。"],
+["ホワイトルシアン","ウォッカ","Long",["ウォッカ","コーヒーリキュール","生クリーム"],0,"『白系ロシア人』(帝政ロシア支持者)を指す言葉から。ミルクの白さも掛けている。"],
+["マンハッタン","ウイスキー","Short",["ライウィスキー","スウィートベルモット","アンゴスチュラビター"],1210,"ニューヨークのマンハッタン島にちなむ。"],
+["ニューヨーク","ウイスキー","Short",["ライウィスキー","ライムジュース","グレナデンシロップ"],1210,"地名『ニューヨーク』をそのまま名前にしたもの。"],
+["ボニースコット","ウイスキー","Short",["スコッチウィスキー","ドランブイ","レモンジュース"],1430,"スコットランド訛りで「素敵なスコットランド人」を意味する。"],
+["テネシーカクテル","ウイスキー","Short",["ジャックダニエル","マラスキーノ","レモンジュース"],0,"主原料ジャックダニエルの産地、アメリカ・テネシー州にちなむ。"],
+["マミーテイラー","ウイスキー","Long",["スコッチウィスキー","レモン","ジンジャーエール"],1210,"実在したとされる女性オペラ歌手『メイミー・テイラー』の名前に由来するという説がある。"],
+["ミントジュレップ","ウイスキー","Long",["バーボン","ミント葉","シュガーシロップ"],1210,"バラ水を意味するアラビア語『julab』が語源とされ、ミントの爽やかな香りに由来する。"],
+["ラスティネイル","ウイスキー","Long",["スコッチウィスキー","ドランブイ"],1210,"「錆びた釘」の意味。ドランブイの茶色い色合いから名付けられた。"],
+["ゴッドファーザー","ウイスキー","Long",["ライウィスキー","アマレット"],1210,"映画『ゴッドファーザー』にちなむという説が広く知られている。"],
+["カリフォルニアレモネード","ウイスキー","Long",["ライウィスキー","レモンジュース","グレナデンシロップ","ソーダ"],1210,"アメリカ・カリフォルニア州とレモネードを組み合わせた名前。"],
+["マティーニ","ジン","Short",["ジン","ドライベルモット","オレンジビターズ","オリーブ"],1210,"諸説あり、ベルモットの銘柄『マルティーニ』に由来するという説がよく知られる。"],
+["ギブソン","ジン","Short",["ジン","ドライベルモット","パールオニオン"],1210,"考案を依頼した人物『ギブソン氏』の名前に由来するという説がある。"],
+["ギムレット","ジン","Short",["ジン","ライムジュース"],1100,"工具の「小さな穴あけ錐(きり)」を意味し、鋭い切れ味のある味わいから。"],
+["ホワイトレディ","ジン","Short",["ジン","ホワイトキュラソー","レモンジュース"],1100,"英語で「白い貴婦人」。見た目の白さから名付けられた。"],
+["アラウンドザワールド","ジン","Short",["ジン","ミントリキュール","パインジュース"],1100,"英語で「世界一周」。複数の材料が世界各地に由来することから。"],
+["ヨコハマ","ジン","Short",["ジン","ウォッカ","オレンジジュース","グレナデンシロップ"],1100,"日本の地名『横浜』にちなむ。"],
+["ブルームーン","ジン","Short",["ジン","パルフェタムール","レモンジュース"],1100,"「青い月」の意味。パルフェタムールの青紫色から名付けられた。"],
+["ジントニック","ジン","Long",["ジン","トニックウォーター","ライム"],990,"ジンとトニックウォーターをそのまま名前にしたもの。イギリス領インドでマラリア予防薬キニーネを飲みやすくしたのが起源とされる。"],
+["ジンリッキー","ジン","Long",["ジン","ソーダ","ライム"],990,"考案者とされる政治家『ジョー・リッキー』の名前にちなむ。"],
+["エメラルドクーラー","ジン","Long",["ジン","ミントリキュール","レモンジュース","ソーダ"],1100,"ミントの緑色を宝石『エメラルド』に例えた名前。"],
+["シンガポールスリング","ジン","Long",["ジン","レモンジュース","チェリーブランデー","ソーダ"],1100,"シンガポールのラッフルズホテルで考案されたとされ、『スリング』は古くからある飲み物の様式を指す。"],
+["トムコリンズ","ジン","Long",["ジン","レモンジュース","ソーダ","シュガーシロップ"],1210,"実在するか論争になったことで有名な、架空とも言われる人物『トム・コリンズ』にちなむ。"],
+["ジンライム","ジン","Long",["ジン","ライムジュース"],1100,"ジンとライムをそのまま名前にしたもの。"],
+["フレンチ75","ジン","Long",["ジン","レモンジュース","シュガーシロップ","スパークリングワイン"],1210,"第一次世界大戦でフランス軍が使用した『75mm野砲』にちなみ、強い一杯という意味を込めている。"],
+["サイドカー","ブランデー","Short",["コニャック","ホワイトキュラソー","レモンジュース"],1430,"オートバイの『サイドカー』にちなむ。考案者がサイドカーに乗って店に通ったという逸話がある。"],
+["アレキサンダー","ブランデー","Short",["コニャック","カカオリキュール","生クリーム"],1430,"人物名に由来するとされ、ロシア皇帝アレクサンドルにちなむという説がある。"],
+["ビトウィーンザシーツ","ブランデー","Short",["コニャック","ラム","ホワイトキュラソー","レモンジュース"],1430,"英語で「シーツの間で」という意味の、際どい響きを持つ名前。"],
+["A・J エー・ジェイ","ブランデー","Short",["アップルブランデー","グレープフルーツジュース","グレナデンシロップ"],1430,"材料『アップルジャック(Applejack)』の頭文字から。"],
+["ジャックローズ","ブランデー","Short",["アップルブランデー","ライムジュース","グレナデンシロップ"],1430,"材料のアップルジャックと、カクテルのバラ色の見た目、または考案者の名前に由来するなど諸説ある。"],
+["スティンガー","ブランデー","Short",["コニャック","ミントリキュール"],1430,"英語で「針で刺すもの」。ミントの刺激的な後味から名付けられた。"],
+["ホーセスネック","ブランデー","Long",["コニャック","ジンジャーエール","レモン果皮"],1430,"「馬の首」の意味。螺旋状に長く剥いたレモンの皮が馬の首のように見えることから。"],
+["フレンチコネクション","ブランデー","Long",["コニャック","アマレット"],1430,"映画『フレンチ・コネクション』にちなむとされる。"],
+["フレンチ125","ブランデー","Long",["コニャック","レモンジュース","シュガーシロップ","スパークリングワイン"],1430,"『フレンチ75』のブランデー・シャンパンベース版として、番号を上げて名付けられた。"],
+];
+
+const ORIGIN={
+"ラム":{origin:"17世紀、カリブ海の英領バルバドスなどでサトウキビから砂糖を精製する際に出る副産物「糖蜜」を発酵・蒸留したのが始まりとされる。",etym:"名前の由来は諸説あり、当時の水夫言葉で「大騒ぎ・興奮」を意味した『rumbullion(ラムバリオン)』の略という説や、ラテン語で砂糖を意味する『saccharum』に由来するという説がある。"},
+"ジン":{origin:"17世紀のオランダで、薬用酒(利尿・解熱)として開発されたのが起源。オランダ人医師フランシスクス・シルヴィウスが考案したという説が広く知られる。",etym:"名前はオランダ語で『ねずの実』を意味する『jenever(ジュネヴァ)』に由来し、これがフランス経由で英語に取り込まれる際に『gin』と短縮された。"},
+"ウォッカ":{origin:"8〜9世紀頃の東欧(現在のロシア・ポーランド周辺)で穀物やじゃがいもを原料に作られ始めたとされる蒸留酒。",etym:"名前はスラブ語で『水』を意味する『voda』に、指小辞(小さい・親愛)を付けた『vodka＝小さな水』という意味からきている。"},
+"テキーラ":{origin:"16世紀にスペイン人がメキシコへ蒸留技術を伝えたことで発展した、アガベ(リュウゼツラン)を原料とする蒸留酒。メキシコ政府の原産地呼称制度により特定地域でしか名乗れない。",etym:"名前はメキシコ・ハリスコ州にある町『テキーラ』の地名に由来する。地名自体はナワトル語で『切る場所』などを意味するという説がある。"},
+"ウイスキー":{origin:"中世スコットランド・アイルランドの修道院で培われた蒸留技術から発展したとされる穀物由来の蒸留酒。",etym:"名前はゲール語で『命の水』を意味する『uisce beatha(ウィシュケ・バーハ)』が英語風に訛って『whisky』となった。"},
+"ブランデー":{origin:"16〜17世紀、オランダの商人がワインを長距離輸送しやすくするため蒸留して濃縮したのが始まりとされる。",etym:"名前はオランダ語で『焼いたワイン』を意味する『brandewijn』に由来し、これが英語で『brandy』となった。"},
+};
+
+function famKey(ings){return ings.filter(i=>!STRIP.has(i)).sort().join("+")}
+
+// ---- dict view ----
+let activeBase="all";
+const bf=document.getElementById("baseFilters");
+["all",...BASES].forEach(b=>{
+  const btn=document.createElement("button");
+  btn.textContent=b==="all"?"すべて":b;
+  btn.className=b==="all"?"active":"";
+  btn.onclick=()=>{activeBase=b;[...bf.children].forEach(c=>c.classList.remove("active"));btn.classList.add("active");renderDict()};
+  bf.appendChild(btn);
+});
+document.getElementById("search").addEventListener("input",renderDict);
+
+function renderDict(){
+  const q=document.getElementById("search").value.trim();
+  const list=document.getElementById("dictList");
+  list.innerHTML="";
+  if(activeBase!=="all"&&ORIGIN[activeBase]){
+    const o=ORIGIN[activeBase];
+    const oc=document.createElement("div");oc.className="origin-card";
+    oc.innerHTML=`<h4>📜 ${activeBase}の由来</h4><p><b>起源:</b> ${o.origin}</p><p><b>名前の語源:</b> ${o.etym}</p>`;
+    list.appendChild(oc);
+  }
+  const items=DATA.filter(d=>(activeBase==="all"||d[1]===activeBase)&&(!q||d[0].includes(q)||d[3].some(i=>i.includes(q))));
+  if(!items.length){list.innerHTML+='<div class="empty">該当するカクテルがありません</div>';return}
+  items.forEach(([name,base,type,ings,price,etym])=>{
+    const el=document.createElement("div");el.className="card";
+    el.innerHTML=`<div class="top"><h3>${name}</h3><span class="price">${price?"¥"+price:"価格不明"}</span></div>
+    <span class="tag">${base}</span><span class="tag">${type}</span>
+    <div class="ing">${ings.join("、")}</div>
+    <div class="ing" style="margin-top:6px"><b style="color:var(--accent2)">語源:</b> ${etym}</div>`;
+    list.appendChild(el);
+  });
+}
+renderDict();
+
+// ---- family view ----
+function renderFamilies(){
+  const groups={};
+  DATA.forEach(d=>{const k=famKey(d[3]);if(!k)return;(groups[k]=groups[k]||[]).push(d)});
+  const list=document.getElementById("famList");
+  list.innerHTML="";
+  const keys=Object.keys(groups).filter(k=>groups[k].length>1);
+  if(!keys.length){list.innerHTML='<div class="empty">グループなし</div>';return}
+  keys.forEach(k=>{
+    const members=groups[k];
+    const el=document.createElement("div");el.className="fam-group";
+    el.innerHTML=`<h4>共通材料: ${k.split("+").join("、")}</h4>
+    <div class="members">${members.map(m=>`<div class="m"><b>${m[0]}</b><span>${m[1]}・${m[3].filter(i=>STRIP.has(i)).join("/")||"（ベースのみ）"}</span></div>`).join("")}</div>`;
+    list.appendChild(el);
+  });
+}
+renderFamilies();
+
+// ---- tabs ----
+document.querySelectorAll(".tabbtn").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll(".tabbtn").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    document.getElementById(b.dataset.v).classList.add("active");
+  };
+});
+
+// ---- quiz ----
+let score=0,total=0,current=null,currentMode="random";
+function shuffle(a){return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1])}
+function pick(n,arr,exclude){const pool=arr.filter(x=>x!==exclude);return shuffle(pool).slice(0,n)}
+
+const MODES=[
+  {key:"ing2name",label:"素材 → カクテル"},
+  {key:"name2ing",label:"カクテル → 素材"},
+  {key:"base2name",label:"お酒 → カクテル"},
+  {key:"name2base",label:"カクテル → お酒"},
+  {key:"origin2base",label:"お酒の由来・語源 → お酒"},
+  {key:"etym2name",label:"カクテル名の語源 → カクテル"},
+  {key:"random",label:"ランダム（混合）"},
+];
+const TYPE_LABEL={ing2name:"素材→カクテル",name2ing:"カクテル→素材",base2name:"お酒→カクテル",name2base:"カクテル→お酒",origin2base:"お酒の由来・語源→お酒",etym2name:"カクテル名の語源→カクテル"};
+const modeBtns=document.getElementById("modeButtons");
+MODES.forEach(m=>{
+  const b=document.createElement("button");
+  b.textContent=m.label;
+  b.onclick=()=>startQuiz(m.key);
+  modeBtns.appendChild(b);
+});
+function startQuiz(mode){
+  currentMode=mode;score=0;total=0;
+  document.getElementById("qscore").textContent="0 / 0 正解";
+  document.getElementById("modeSelect").style.display="none";
+  document.getElementById("qcard").style.display="block";
+  newQuestion();
+}
+document.getElementById("qchangemode").onclick=()=>{
+  document.getElementById("modeSelect").style.display="block";
+  document.getElementById("qcard").style.display="none";
+};
+
+function newQuestion(){
+  const pool=["ing2name","name2ing","base2name","name2base","origin2base","etym2name"];
+  const type=currentMode==="random"?pool[Math.floor(Math.random()*pool.length)]:currentMode;
+  const d=DATA[Math.floor(Math.random()*DATA.length)];
+  const [name,base,,ings,,etym]=d;
+  let qtext,correct,choices;
+  if(type==="ing2name"){
+    qtext=`次の材料で作るカクテルは？\n「${ings.join("、")}」`;
+    correct=name;
+    choices=shuffle([name,...pick(3,DATA.map(x=>x[0]),name)]);
+  } else if(type==="name2ing"){
+    const wrongIngsSets=pick(3,DATA,d).map(x=>x[3].join("、"));
+    qtext=`「${name}」の材料はどれ？`;
+    correct=ings.join("、");
+    choices=shuffle([correct,...wrongIngsSets]);
+  } else if(type==="base2name"){
+    qtext=`「${base}」がベースのカクテルはどれ？`;
+    correct=name;
+    const others=pick(20,DATA,d).filter(x=>x[1]!==base).slice(0,3);
+    choices=shuffle([name,...others.map(x=>x[0])]);
+  } else if(type==="origin2base"){
+    const rb=BASES[Math.floor(Math.random()*BASES.length)];
+    const useEtym=Math.random()<0.5;
+    const text=useEtym?ORIGIN[rb].etym:ORIGIN[rb].origin;
+    qtext=`次の${useEtym?"名前の語源":"起源"}の説明はどのお酒？\n「${text}」`;
+    correct=rb;
+    choices=shuffle([rb,...pick(3,BASES,rb)]);
+  } else if(type==="etym2name"){
+    qtext=`次はどのカクテルの名前の語源？\n「${etym}」`;
+    correct=name;
+    choices=shuffle([name,...pick(3,DATA.map(x=>x[0]),name)]);
+  } else {
+    qtext=`「${name}」のベースのお酒はどれ？`;
+    correct=base;
+    choices=shuffle([base,...pick(3,BASES,base)]);
+  }
+  current={correct};
+  document.getElementById("qtype").textContent=TYPE_LABEL[type];
+  document.getElementById("qtext").textContent=qtext;
+  const cc=document.getElementById("qchoices");
+  cc.innerHTML="";
+  choices.forEach(c=>{
+    const btn=document.createElement("button");
+    btn.textContent=c;
+    btn.onclick=()=>answer(btn,c);
+    cc.appendChild(btn);
+  });
+  document.getElementById("qnext").style.display="none";
+}
+function answer(btn,choice){
+  [...document.getElementById("qchoices").children].forEach(b=>b.disabled=true);
+  total++;
+  if(choice===current.correct){score++;btn.classList.add("correct")}
+  else{
+    btn.classList.add("wrong");
+    [...document.getElementById("qchoices").children].forEach(b=>{if(b.textContent===current.correct)b.classList.add("correct")});
+  }
+  document.getElementById("qscore").textContent=`${score} / ${total} 正解`;
+  document.getElementById("qnext").style.display="inline-block";
+}
+document.getElementById("qnext").onclick=newQuestion;
+</script>
+</body>
+</html>
